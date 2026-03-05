@@ -17,11 +17,7 @@ import math
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=[
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://aapada-rakshak.vercel.app"
-])
+CORS(app)
 
 # ─── Firebase Initialization ───────────────────────────────────────────────────
 db = None
@@ -267,7 +263,25 @@ def add_to_firestore(collection, data):
 
 
 # ─── API Routes ────────────────────────────────────────────────────────────────
-
+@app.route('/')
+def home():
+    return jsonify({
+        "service": "Aapada Rakshak API",
+        "status": "running",
+        "message": "Backend is live",
+        "endpoints": {
+            "health": "/api/health",
+            "disasters": "/api/disasters",
+            "shelters": "/api/shelters",
+            "volunteers": "/api/volunteers",
+            "relief_posts": "/api/relief-posts",
+            "users": "/api/users",
+            "analytics": "/api/analytics",
+            "predict_risk": "/api/predict-risk",
+            "sos": "/api/sos",
+            "history": "/api/history"
+        }
+    })
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({
