@@ -1,13 +1,13 @@
 import axios from "axios";
 
-const API_BASE = "/api";    
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 10000,
   headers: {
-    "Content-Type": "application/json"
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -20,49 +20,49 @@ api.interceptors.response.use(
   (err) => {
     console.error("[API] Error:", err.message);
     throw err;
-  }
+  },
 );
 
 export const disasterAPI = {
   getAll: (filters = {}) => api.get("/disasters", { params: filters }),
   create: (data) => api.post("/disasters", data),
-  delete: (id) => api.delete(`/disasters/${id}`)
+  delete: (id) => api.delete(`/disasters/${id}`),
 };
 
 export const shelterAPI = {
   getAll: (params = {}) => api.get("/shelters", { params }),
-  create: (data) => api.post("/shelters", data)
+  create: (data) => api.post("/shelters", data),
 };
 
 export const volunteerAPI = {
   getAll: (params = {}) => api.get("/volunteers", { params }),
-  register: (data) => api.post("/volunteers", data)
+  register: (data) => api.post("/volunteers", data),
 };
 
 export const reliefAPI = {
   getPosts: () => api.get("/relief-posts"),
-  createPost: (data) => api.post("/relief-posts", data)
+  createPost: (data) => api.post("/relief-posts", data),
 };
 
 export const mlAPI = {
-  predictRisk: (data) => api.post("/predict-risk", data)
+  predictRisk: (data) => api.post("/predict-risk", data),
 };
 
 export const sosAPI = {
-  send: (data) => api.post("/sos", data)
+  send: (data) => api.post("/sos", data),
 };
 
 export const analyticsAPI = {
-  get: () => api.get("/analytics")
+  get: () => api.get("/analytics"),
 };
 
 export const historyAPI = {
-  get: () => api.get("/history")
+  get: () => api.get("/history"),
 };
 
 export const usersAPI = {
   getAll: () => api.get("/users"),
-  delete: (id) => api.delete(`/users/${id}`)
+  delete: (id) => api.delete(`/users/${id}`),
 };
 
 export default api;
