@@ -500,7 +500,24 @@ def get_users():
     if role:
         data = [u for u in data if u.get('role', '').lower() == role.lower()]
     return jsonify({"success": True, "data": data, "count": len(data)})
+@app.route('/api/user-role', methods=['GET'])
+def get_user_role():
+    email = request.args.get('email')
 
+    data = get_from_firestore('users')
+    if data is None:
+        data = MOCK_USERS
+
+    user = next((u for u in data if u['email'] == email), None)
+
+    if not user:
+        return jsonify({"success": False, "role": "citizen"})
+
+    return jsonify({
+        "success": True,
+        "role": user.get("role", "citizen"),
+        "user": user
+    })
 
 # --- ML Risk Prediction ---
 

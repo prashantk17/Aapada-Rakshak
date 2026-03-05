@@ -7,6 +7,7 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
+import api from "../utils/api";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 
@@ -32,13 +33,13 @@ export function AuthProvider({ children }) {
       let role = localStorage.getItem("userRole") || "citizen";
 
       try {
-        const docRef = doc(db, "users", firebaseUser.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          role = docSnap.data().role || "citizen";
-          localStorage.setItem("userRole", role);
-        }
+        try {
+  const res = await api.get(`/user-role?email=${firebaseUser.email}`);
+  role = res.role || "citizen";
+  localStorage.setItem("userRole", role);
+} catch (err) {
+  console.warn("Role fetch failed:", err);
+}
       } catch (err) {
         console.warn("Role fetch failed:", err);
       }
@@ -90,12 +91,14 @@ export function AuthProvider({ children }) {
     const result = await signInWithEmailAndPassword(auth, email, password);
 
     // 🔹 Get role from Firestore
-    const docRef = doc(db, "users", result.user.uid);
-    const docSnap = await getDoc(docRef);
+    let role = "citizen";
 
-    const role = docSnap.exists()
-      ? docSnap.data().role || "citizen"
-      : "citizen";
+try {
+  const res = await api.get(`/user-role?email=${result.user.email}`);
+  role = res.role || "citizen";
+} catch (err) {
+  console.warn("Role fetch failed:", err);
+}
 
     localStorage.setItem("userRole", role);
 
