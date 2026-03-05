@@ -17,7 +17,11 @@ import math
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173", "http://localhost:3000"])
+CORS(app, origins=[
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://aapada-rakshak.vercel.app"
+])
 
 # ─── Firebase Initialization ───────────────────────────────────────────────────
 db = None
