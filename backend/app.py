@@ -17,8 +17,7 @@ import math
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
-
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 # ─── Firebase Initialization ───────────────────────────────────────────────────
 db = None
 try:
@@ -268,6 +267,7 @@ def home():
     return jsonify({
         "service": "Aapada Rakshak API",
         "status": "running",
+        
         "message": "Backend is live",
         "endpoints": {
             "health": "/api/health",
