@@ -1,0 +1,67 @@
+// firebase/firestore.rules — Firestore Security Rules for Aapada Rakshak
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: check if user is admin
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper: check if authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Users — can read/write own profile
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Disasters — public read, admin-only write
+    match /disasters/{disasterId} {
+      allow read: if true;  // Public - anyone can see alerts
+      allow create, update, delete: if isAuth() && isAdmin();
+    }
+
+    // Shelters — public read, admin-only write
+    match /shelters/{shelterId} {
+      allow read: if true;
+      allow create, update, delete: if isAuth() && isAdmin();
+    }
+
+    // Volunteers — authenticated read, self-register
+    match /volunteers/{volunteerId} {
+      allow read: if true;
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && (request.auth.uid == resource.data.user_id || isAdmin());
+    }
+
+    // Relief Posts — authenticated read, volunteer/admin write
+    match /relief_posts/{postId} {
+      allow read: if true;
+      allow create: if isAuth();
+      allow update, delete: if isAuth() && (request.auth.uid == resource.data.volunteer_id || isAdmin());
+    }
+
+    // Alerts — public read, admin write
+    match /alerts/{alertId} {
+      allow read: if true;
+      allow write: if isAuth() && isAdmin();
+    }
+
+    // SOS Alerts — auth required to create
+    match /sos_alerts/{sosId} {
+      allow create: if isAuth();
+      allow read, update, delete: if isAuth() && isAdmin();
+    }
+
+    // Historical Disasters — public read-only
+    match /historical_disasters/{docId} {
+      allow read: if true;
+      allow write: if isAuth() && isAdmin();
+    }
+  }
+}
