@@ -7,7 +7,6 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
-import { usersAPI } from "../utils/api";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 
@@ -22,55 +21,41 @@ export function AuthProvider({ children }) {
   const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
-    try {
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          try {
-            const res = await usersAPI.getAll();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!firebaseUser) {
+        setUser(null);
+        setUserRole("citizen");
+        setLoading(false);
+        return;
+      }
 
-            const userData = res.data.find(
-              (u) =>
-                u.email?.toLowerCase() === firebaseUser.email?.toLowerCase(),
-            );
+      let role = localStorage.getItem("userRole") || "citizen";
 
-            const role = userData?.role || "citizen";
+      try {
+        const docRef = doc(db, "users", firebaseUser.uid);
+        const docSnap = await getDoc(docRef);
 
-            setUserRole(role);
-            setUser({ ...firebaseUser, role });
-          } catch (e) {
-            setUser(firebaseUser);
-            setUserRole("citizen");
-          }
-
-          setLoading(false);
-        } else {
-          setUser(null);
-          setUserRole("citizen");
-          setLoading(false);
+        if (docSnap.exists()) {
+          role = docSnap.data().role || "citizen";
+          localStorage.setItem("userRole", role);
         }
-      });
-      return unsubscribe;
-    } catch (e) {
-      console.warn("[Auth] Firebase auth unavailable, using demo mode");
-      setDemoMode(true);
+      } catch (err) {
+        console.warn("Role fetch failed:", err);
+      }
+
+      setUser({ ...firebaseUser, role });
+      setUserRole(role);
       setLoading(false);
-    }
+    });
+
+    return unsubscribe;
   }, []);
 
   const signUp = async (email, password, name, role = "citizen") => {
-    if (demoMode) {
-      const demoUser = {
-        uid: "demo-" + Date.now(),
-        email,
-        displayName: name,
-        role,
-      };
-      setUser(demoUser);
-      setUserRole(role);
-      return demoUser;
-    }
     const result = await createUserWithEmailAndPassword(auth, email, password);
+
     await updateProfile(result.user, { displayName: name });
+
     await setDoc(doc(db, "users", result.user.uid), {
       name,
       email,
@@ -79,10 +64,7 @@ export function AuthProvider({ children }) {
       location: null,
     });
 
-    // ✅ update user state immediately
-    setUser({ ...result.user, role });
-    setUserRole(role);
-
+    // Let onAuthStateChanged handle state update
     return result.user;
   };
 
@@ -104,19 +86,19 @@ export function AuthProvider({ children }) {
       return demoUser;
     }
 
-    // 🔹 Step 1: Login using Firebase
+    // 🔹 Login using Firebase
     const result = await signInWithEmailAndPassword(auth, email, password);
 
-    // 🔹 Step 2: Get role from Flask backend
-    const res = await usersAPI.getAll();
+    // 🔹 Get role from Firestore
+    const docRef = doc(db, "users", result.user.uid);
+    const docSnap = await getDoc(docRef);
 
-    const userData = res.data.find(
-      (u) => u.email?.toLowerCase() === result.user.email?.toLowerCase(),
-    );
+    const role = docSnap.exists()
+      ? docSnap.data().role || "citizen"
+      : "citizen";
 
-    const role = userData?.role || "citizen";
+    localStorage.setItem("userRole", role);
 
-    // 🔹 Step 3: Update React state
     setUserRole(role);
     setUser({ ...result.user, role });
 
@@ -129,6 +111,7 @@ export function AuthProvider({ children }) {
       setUserRole("citizen");
       return;
     }
+    localStorage.removeItem("userRole");
     await signOut(auth);
   };
 
